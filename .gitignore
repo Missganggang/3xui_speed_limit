@@ -1,0 +1,13 @@
+# 运行时生成，含 API Token，绝对不能提交
+config.json
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# 编辑器
+.vscode/
+.idea/
+.DS_Store

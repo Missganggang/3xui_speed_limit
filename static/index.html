@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3x-ui 端口限速管理</title>
+<style>
+:root {
+  --n-950:#07101d; --n-900:#0d1828; --n-850:#101e30;
+  --n-800:#172538; --n-700:#1f3248; --n-600:#2c4460;
+  --n-500:#3d5a78; --n-400:#5b7a9b; --n-300:#7e9dba;
+  --n-200:#aac0d6; --n-100:#d4e2ef; --n-50:#f0f5fa;
+  --a-700:#1d4ed8; --a-600:#2563eb; --a-500:#3b82f6;
+  --a-400:#60a5fa; --a-300:#93c5fd; --a-100:#dbeafe;
+  --success:#22c55e; --warn:#f59e0b;
+  --danger:#ef4444; --danger-dim:rgba(239,68,68,.13);
+  --danger-bdr:rgba(239,68,68,.28);
+  --bg:var(--n-950); --surface:var(--n-900); --raised:var(--n-850);
+  --border:var(--n-700); --muted:var(--n-400);
+  --text:var(--n-50); --sub:var(--n-300);
+  --code-bg:#050f0a; --code-fg:#7df0a4; --code-bdr:#1a3d2a;
+  --r-sm:6px; --r-md:10px; --r-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+  background:radial-gradient(circle at top,#122035 0%,var(--bg) 40%);
+  color:var(--text);min-height:100vh;font-size:14px}
+.container{width:100%;max-width:1160px;margin:0 auto;padding:32px 20px 64px}
+.hidden{display:none!important}
+/* ── cards ── */
+.card{background:rgba(13,24,40,.97);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:22px;margin-bottom:18px;
+  box-shadow:0 12px 40px rgba(0,0,0,.22)}
+.card-title{font-size:16px;font-weight:650;margin-bottom:18px;color:var(--n-100)}
+/* ── forms ── */
+.form-group{margin-bottom:16px}
+.form-group:last-child{margin-bottom:0}
+label{display:block;font-size:12px;color:var(--sub);margin-bottom:6px;font-weight:500}
+input,select{width:100%;height:42px;padding:0 12px;background:#07101b;
+  border:1px solid var(--n-600);border-radius:var(--r-md);color:var(--text);
+  outline:none;font-size:13px;transition:.15s}
+input:focus,select:focus{border-color:var(--a-500);
+  box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.hint{margin-top:6px;color:var(--n-500);font-size:11px;line-height:1.5}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.input-pair{display:grid;grid-template-columns:1fr 90px;gap:8px}
+/* ── buttons ── */
+button{border:none;border-radius:var(--r-md);padding:9px 15px;cursor:pointer;
+  font-weight:600;font-size:13px;transition:.15s;line-height:1}
+.btn-primary{background:var(--a-600);color:#fff}
+.btn-primary:hover{background:var(--a-700)}
+.btn-secondary{background:var(--n-700);color:var(--n-100)}
+.btn-secondary:hover{background:var(--n-600)}
+.btn-danger{background:var(--danger-dim);color:#f87171;border:1px solid var(--danger-bdr)}
+.btn-danger:hover{background:rgba(239,68,68,.22)}
+.btn-sm{padding:6px 11px;font-size:12px}
+.btn-icon{padding:6px 9px;font-size:14px;line-height:1}
+/* ── badge ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;
+  border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-green{background:rgba(34,197,94,.13);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
+.badge-blue{background:rgba(59,130,246,.13);color:var(--a-400);border:1px solid rgba(59,130,246,.25)}
+.badge-yellow{background:rgba(245,158,11,.13);color:#fbbf24;border:1px solid rgba(245,158,11,.25)}
+.badge-red{background:var(--danger-dim);color:#f87171;border:1px solid var(--danger-bdr)}
+.badge-muted{background:var(--n-800);color:var(--muted);border:1px solid var(--n-700)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.dot-green{background:var(--success)} .dot-red{background:var(--danger)}
+.dot-blue{background:var(--a-500)} .dot-yellow{background:var(--warn)}
+/* ── header ── */
+.page-header{display:flex;justify-content:space-between;align-items:center;
+  gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.page-title h1{font-size:26px;font-weight:700;margin-bottom:5px}
+.page-title p{color:var(--muted);font-size:13px}
+.server-badge{background:var(--n-800);border:1px solid var(--n-600);
+  padding:8px 13px;border-radius:var(--r-md);font-family:Consolas,monospace;font-size:13px}
+.server-badge strong{color:var(--a-400)}
+/* ── stats row ── */
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.stat{background:var(--n-850);border:1px solid var(--n-700);border-radius:var(--r-md);
+  padding:11px 16px;min-width:110px}
+.stat span{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+.stat strong{font-size:17px;font-weight:700}
+/* ── table ── */
+.table-wrap{overflow-x:auto;border-radius:var(--r-md)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:10px 14px;text-align:left;font-size:11px;font-weight:600;
+  color:var(--muted);border-bottom:1px solid var(--n-700);white-space:nowrap;
+  position:sticky;top:0;background:var(--n-900);z-index:1}
+td{padding:10px 14px;border-bottom:1px solid rgba(31,50,72,.5);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.018)}
+.col-check{width:38px}
+/* ── search ── */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.search-wrap{position:relative;flex:1;min-width:200px}
+.search-wrap input{padding-left:34px}
+.search-wrap::before{content:"⌕";position:absolute;left:11px;top:50%;
+  transform:translateY(-50%);color:var(--muted);font-size:16px;pointer-events:none}
+/* ── modal ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--n-900);border:1px solid var(--n-700);border-radius:var(--r-lg);
+  padding:26px;width:100%;max-width:480px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+.modal-title{font-size:17px;font-weight:650;margin-bottom:20px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+/* ── notice ── */
+.notice{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);
+  color:#93c5fd;border-radius:var(--r-md);padding:12px 15px;
+  font-size:12px;line-height:1.65;margin-top:14px}
+.notice-warn{background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.2);color:#fcd34d}
+/* ── speed preset chips ── */
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.preset{padding:5px 12px;border-radius:20px;border:1px solid var(--n-600);
+  background:var(--n-800);color:var(--n-200);cursor:pointer;font-size:12px;transition:.13s}
+.preset:hover,.preset.active{border-color:var(--a-500);color:var(--a-300);background:rgba(59,130,246,.1)}
+/* ── toast ── */
+.toast{position:fixed;right:22px;bottom:22px;background:#132e1d;
+  border:1px solid #2d6a3e;color:#86efac;padding:11px 16px;border-radius:var(--r-md);
+  opacity:0;transform:translateY(14px);pointer-events:none;transition:.22s;z-index:300;font-size:13px}
+.toast.show{opacity:1;transform:translateY(0)}
+/* ── setup ── */
+.setup-wrap{max-width:500px;margin:80px auto 0}
+.setup-wrap h1{font-size:24px;margin-bottom:8px}
+.setup-desc{color:var(--muted);line-height:1.7;margin-bottom:22px;font-size:13px}
+/* ── misc ── */
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+.spin{display:inline-block;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.orphan-row td{opacity:.65}
+.text-mono{font-family:Consolas,monospace;font-size:12px}
+@media(max-width:700px){
+  .grid-2,.grid-3{grid-template-columns:1fr}
+  .page-header{flex-direction:column;align-items:flex-start}
+  .container{padding:18px 12px 48px}
+  th,td{padding:8px 10px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Setup page ── -->
+<div id="setupPage" class="setup-wrap hidden">
+  <div class="card">
+    <h1>首次配置</h1>
+    <p class="setup-desc">填写服务器信息后保存，浏览器会记住配置，下次打开无需重填。</p>
+
+    <div class="form-group">
+      <label>公网网卡名称</label>
+      <input id="s_iface" placeholder="例如：ens17" value="ens17" autocomplete="off">
+      <div class="hint">在 Debian 执行 <code>ip route</code> 查看默认出口网卡。</div>
+    </div>
+
+    <div class="form-group">
+      <label>3x-ui 面板地址</label>
+      <input id="s_url" placeholder="例如：https://panel.example.com 或 http://127.0.0.1:54321">
+      <div class="hint">支持 HTTPS 域名（如 https://panel.example.com）或 IP+端口。与 3x-ui 同机时推荐填 127.0.0.1 加面板端口，避免 Token 经过公网。HTTPS 域名若证书自签会跳过验证。</div>
+    </div>
+
+    <div class="form-group">
+      <label>Web Base Path（默认留空）</label>
+      <input id="s_base" placeholder="/" value="/">
+    </div>
+
+    <div class="form-group">
+      <label>Bearer API Token</label>
+      <input id="s_token" type="password" placeholder="在 3x-ui 面板 → API 设置中复制" autocomplete="off">
+    </div>
+
+    <button class="btn-primary" onclick="setupSave()">保存并进入</button>
+  </div>
+</div>
+
+<!-- ── Main page ── -->
+<div id="mainPage" class="container hidden">
+
+  <div class="page-header">
+    <div class="page-title">
+      <h1>3x-ui 端口限速</h1>
+      <p>tc clsact + flower + police 限速管理</p>
+    </div>
+    <div class="row">
+      <div class="server-badge">网卡：<strong id="hdrIface">-</strong></div>
+      <button class="btn-secondary btn-sm" onclick="openSettings()">⚙ 设置</button>
+      <button class="btn-secondary btn-sm" onclick="loadInbounds()">⟳ 刷新</button>
+    </div>
+  </div>
+
+  <!-- stats -->
+  <div class="stats">
+    <div class="stat"><span>入站总数</span><strong id="statTotal">-</strong></div>
+    <div class="stat"><span>已限速</span><strong id="statLimited" style="color:var(--a-400)">-</strong></div>
+    <div class="stat"><span>未限速</span><strong id="statUnlimited" style="color:var(--warn)">-</strong></div>
+    <div class="stat"><span>孤立规则</span><strong id="statOrphan" style="color:var(--danger)">-</strong></div>
+  </div>
+
+  <!-- toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input id="searchBox" placeholder="搜索备注 / 端口" oninput="renderTable()">
+    </div>
+    <button class="btn-secondary btn-sm" onclick="openBatch()">批量限速</button>
+  </div>
+
+  <!-- table -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th class="col-check"><input type="checkbox" id="chkAll" onchange="toggleAll(this)"></th>
+            <th>备注</th>
+            <th>端口</th>
+            <th>协议</th>
+            <th>限速</th>
+            <th>Burst</th>
+            <th>tc 状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="8" class="empty">加载中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Rule modal ── -->
+<div id="ruleOverlay" class="overlay hidden" onclick="if(event.target===this)closeRule()">
+  <div class="modal">
+    <div class="modal-title" id="ruleTitle">设置限速</div>
+
+    <div class="form-group">
+      <label>客户端备注</label>
+      <input id="ruleRemark" readonly style="opacity:.6">
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>端口</label>
+        <input id="rulePort" readonly style="opacity:.6">
+      </div>
+      <div class="form-group">
+        <label>协议</label>
+        <input id="ruleProto" readonly style="opacity:.6">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>限速值</label>
+      <div class="input-pair">
+        <input id="ruleRate" type="number" min="0.1" step="0.1" value="10">
+        <select id="ruleRateUnit">
+          <option value="mbit">Mbps</option>
+          <option value="kbit">Kbps</option>
+        </select>
+      </div>
+      <div class="presets" id="ratePresets">
+        <span class="preset" onclick="setPreset(5)">5M</span>
+        <span class="preset" onclick="setPreset(10)">10M</span>
+        <span class="preset" onclick="setPreset(15)">15M</span>
+        <span class="preset" onclick="setPreset(20)">20M</span>
+        <span class="preset" onclick="setPreset(30)">30M</span>
+        <span class="preset" onclick="setPreset(50)">50M</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Burst 大小</label>
+      <div class="input-pair">
+        <input id="ruleBurst" type="number" min="1" step="1" value="2">
+        <select id="ruleBurstUnit">
+          <option value="mb">MB</option>
+          <option value="kb">KB</option>
+        </select>
+      </div>
+      <div class="hint">建议 1–5 MB；越大短时突发越宽松。</div>
+    </div>
+
+    <div class="grid-3">
+      <div class="form-group">
+        <label>协议过滤</label>
+        <select id="ruleProtocol">
+          <option value="both">TCP + UDP</option>
+          <option value="tcp">仅 TCP</option>
+          <option value="udp">仅 UDP</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>方向</label>
+        <select id="ruleDirection">
+          <option value="both">上传 + 下载</option>
+          <option value="download">仅下载</option>
+          <option value="upload">仅上传</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>IP 类型</label>
+        <select id="ruleIpFamily">
+          <option value="ipv4">IPv4</option>
+          <option value="both">IPv4 + IPv6</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="ruleError" class="notice notice-warn hidden"></div>
+
+    <div class="modal-footer">
+      <button class="btn-danger btn-sm" id="ruleDeleteBtn" onclick="deleteRule()" style="margin-right:auto">取消限速</button>
+      <button class="btn-secondary" onclick="closeRule()">关闭</button>
+      <button class="btn-primary" onclick="saveRule()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Batch modal ── -->
+<div id="batchOverlay" class="overlay hidden" onclick="if(event.target===this)closeBatch()">
+  <div class="modal">
+    <div class="modal-title">批量设置限速</div>
+    <div id="batchPortList" class="notice" style="font-family:Consolas;font-size:12px;line-height:1.8"></div>
+
+    <div class="form-group" style="margin-top:14px">
+      <label>限速值</label>
+      <div class="input-pair">
+        <input id="batchRate" type="number" min="0.1" step="0.1" value="10">
+        <select id="batchRateUnit">
+          <option value="mbit">Mbps</option>
+          <option value="kbit">Kbps</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Burst</label>
+      <div class="input-pair">
+        <input id="batchBurst" type="number" min="1" step="1" value="2">
+        <select id="batchBurstUnit">
+          <option value="mb">MB</option>
+          <option value="kb">KB</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="batchError" class="notice notice-warn hidden"></div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeBatch()">取消</button>
+      <button class="btn-primary" onclick="saveBatch()">应用到所选端口</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Settings modal ── -->
+<div id="settingsOverlay" class="overlay hidden" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <div class="modal-title">服务器设置</div>
+
+    <div class="form-group">
+      <label>公网网卡</label>
+      <input id="cfg_iface" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>3x-ui 地址</label>
+      <input id="cfg_url">
+    </div>
+    <div class="form-group">
+      <label>Web Base Path</label>
+      <input id="cfg_base">
+    </div>
+    <div class="form-group">
+      <label>更新 API Token（留空保持不变）</label>
+      <input id="cfg_token" type="password" placeholder="留空 = 不修改">
+    </div>
+
+    <div id="cfgError" class="notice notice-warn hidden"></div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeSettings()">取消</button>
+      <button class="btn-primary" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const API = '';   // same origin
+let inbounds = [];
+let orphans = [];
+let currentPort = null;
+
+// ── Setup ──────────────────────────────────────────────────────────────────
+
+async function checkSetup() {
+  try {
+    const r = await fetch(API + '/api/setup');
+    const d = await r.json();
+    if (d.configured) {
+      showMain();
+    } else {
+      show('setupPage');
+    }
+  } catch(e) {
+    show('setupPage');
+  }
+}
+
+async function setupSave() {
+  const body = {
+    interface: v('s_iface'),
+    xui_url: v('s_url'),
+    xui_base_path: v('s_base') || '/',
+    xui_token: v('s_token'),
+  };
+  if (!body.interface) { alert('请填写网卡名称'); return; }
+  if (!body.xui_token) { alert('请填写 API Token'); return; }
+  const r = await fetch(API + '/api/setup', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (d.error) { alert(d.error); return; }
+  showMain();
+}
+
+function showMain() {
+  show('mainPage');
+  hide('setupPage');
+  loadInbounds();
+}
+
+// ── Inbounds ───────────────────────────────────────────────────────────────
+
+async function loadInbounds() {
+  setBody('<tr><td colspan="8" class="empty"><span class="spin">⟳</span> 加载中…</td></tr>');
+  try {
+    const r = await fetch(API + '/api/inbounds');
+    const d = await r.json();
+    if (d.error) { setBody(`<tr><td colspan="8" class="empty" style="color:var(--danger)">${d.error}</td></tr>`); return; }
+    inbounds = d.inbounds || [];
+    orphans = d.orphans || [];
+    ge('hdrIface').textContent = d.interface || '-';
+    updateStats();
+    renderTable();
+  } catch(e) {
+    setBody('<tr><td colspan="8" class="empty" style="color:var(--danger)">请求失败，检查后端是否运行</td></tr>');
+  }
+}
+
+function updateStats() {
+  const all = [...inbounds, ...orphans];
+  ge('statTotal').textContent = inbounds.length;
+  ge('statLimited').textContent = inbounds.filter(x => x.rule).length;
+  ge('statUnlimited').textContent = inbounds.filter(x => !x.rule).length;
+  ge('statOrphan').textContent = orphans.length;
+}
+
+function renderTable() {
+  const q = v('searchBox').toLowerCase();
+  const rows = [...inbounds, ...orphans].filter(x => {
+    if (!q) return true;
+    return String(x.port).includes(q) || (x.remark||'').toLowerCase().includes(q);
+  });
+
+  if (!rows.length) {
+    setBody('<tr><td colspan="8" class="empty">无匹配结果</td></tr>'); return;
+  }
+
+  const html = rows.map(x => {
+    const isOrphan = !!x.orphan;
+    const rl = x.rule;
+    const speedTxt = rl ? `${rl.rate} ${rl.rate_unit === 'kbit' ? 'Kbps' : 'Mbps'}` : '—';
+    const burstTxt = rl ? `${rl.burst} ${rl.burst_unit === 'kb' ? 'KB' : 'MB'}` : '—';
+    const statusBadge = x.tc_active
+      ? `<span class="badge badge-green"><span class="dot dot-green"></span>已激活</span>`
+      : (rl
+          ? `<span class="badge badge-yellow"><span class="dot dot-yellow"></span>未同步</span>`
+          : `<span class="badge badge-muted">未限速</span>`);
+    return `<tr class="${isOrphan ? 'orphan-row' : ''}">
+      <td><input type="checkbox" class="row-chk" value="${x.port}"></td>
+      <td>${esc(x.remark || '—')} ${isOrphan ? '<span class="badge badge-red" style="font-size:10px">孤立</span>' : ''}</td>
+      <td class="text-mono">${x.port}</td>
+      <td>${x.protocol || '—'}</td>
+      <td>${speedTxt}</td>
+      <td>${burstTxt}</td>
+      <td>${statusBadge}</td>
+      <td>
+        <button class="btn-primary btn-sm" onclick="openRule(${x.port})">
+          ${rl ? '修改' : '设置限速'}
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+  setBody(html);
+}
+
+// ── Rule modal ─────────────────────────────────────────────────────────────
+
+function openRule(port) {
+  const all = [...inbounds, ...orphans];
+  const row = all.find(x => x.port === port);
+  if (!row) return;
+  currentPort = port;
+  ge('ruleTitle').textContent = `限速设置 — 端口 ${port}`;
+  ge('ruleRemark').value = row.remark || '';
+  ge('rulePort').value = port;
+  ge('ruleProto').value = row.protocol || '';
+  const rl = row.rule || {};
+  ge('ruleRate').value = rl.rate ?? 10;
+  ge('ruleRateUnit').value = rl.rate_unit ?? 'mbit';
+  ge('ruleBurst').value = rl.burst ?? 2;
+  ge('ruleBurstUnit').value = rl.burst_unit ?? 'mb';
+  ge('ruleProtocol').value = rl.protocol ?? 'both';
+  ge('ruleDirection').value = rl.direction ?? 'both';
+  ge('ruleIpFamily').value = rl.ip_family ?? 'ipv4';
+  ge('ruleDeleteBtn').classList.toggle('hidden', !row.rule);
+  hideEl('ruleError');
+  show('ruleOverlay');
+}
+
+function closeRule() { hide('ruleOverlay'); }
+
+function setPreset(val) {
+  ge('ruleRate').value = val;
+  ge('ruleRateUnit').value = 'mbit';
+}
+
+async function saveRule() {
+  const body = {
+    rate: Number(ge('ruleRate').value),
+    rate_unit: ge('ruleRateUnit').value,
+    burst: Number(ge('ruleBurst').value),
+    burst_unit: ge('ruleBurstUnit').value,
+    protocol: ge('ruleProtocol').value,
+    direction: ge('ruleDirection').value,
+    ip_family: ge('ruleIpFamily').value,
+  };
+  const r = await fetch(`${API}/api/rules/${currentPort}`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (d.error) { showRuleError(d.error); return; }
+  closeRule();
+  toast('已保存');
+  loadInbounds();
+}
+
+async function deleteRule() {
+  if (!confirm(`确定取消端口 ${currentPort} 的限速规则？`)) return;
+  const r = await fetch(`${API}/api/rules/${currentPort}`, { method:'DELETE' });
+  const d = await r.json();
+  if (d.error) { showRuleError(d.error); return; }
+  closeRule();
+  toast('已取消限速');
+  loadInbounds();
+}
+
+function showRuleError(msg) {
+  const el = ge('ruleError');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+// ── Batch modal ────────────────────────────────────────────────────────────
+
+function openBatch() {
+  const checked = [...document.querySelectorAll('.row-chk:checked')].map(x => x.value);
+  if (!checked.length) { toast('请先勾选要批量限速的端口'); return; }
+  ge('batchPortList').textContent = '选中端口：' + checked.join('、');
+  ge('batchRate').value = 10;
+  ge('batchRateUnit').value = 'mbit';
+  ge('batchBurst').value = 2;
+  ge('batchBurstUnit').value = 'mb';
+  hideEl('batchError');
+  show('batchOverlay');
+}
+
+function closeBatch() { hide('batchOverlay'); }
+
+async function saveBatch() {
+  const ports = [...document.querySelectorAll('.row-chk:checked')].map(x => Number(x.value));
+  const body = {
+    ports,
+    rule: {
+      rate: Number(ge('batchRate').value),
+      rate_unit: ge('batchRateUnit').value,
+      burst: Number(ge('batchBurst').value),
+      burst_unit: ge('batchBurstUnit').value,
+      protocol: 'both',
+      direction: 'both',
+      ip_family: 'ipv4',
+    }
+  };
+  const r = await fetch(`${API}/api/rules/batch`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (d.error) { ge('batchError').textContent=d.error; ge('batchError').classList.remove('hidden'); return; }
+  closeBatch();
+  toast(`已批量设置 ${ports.length} 个端口`);
+  loadInbounds();
+}
+
+// ── Settings modal ─────────────────────────────────────────────────────────
+
+async function openSettings() {
+  const r = await fetch(API + '/api/settings');
+  const d = await r.json();
+  ge('cfg_iface').value = d.interface || '';
+  ge('cfg_url').value = d.xui_url || '';
+  ge('cfg_base').value = d.xui_base_path || '/';
+  ge('cfg_token').value = '';
+  hideEl('cfgError');
+  show('settingsOverlay');
+}
+
+function closeSettings() { hide('settingsOverlay'); }
+
+async function saveSettings() {
+  const body = {
+    interface: v('cfg_iface'),
+    xui_url: v('cfg_url'),
+    xui_base_path: v('cfg_base') || '/',
+  };
+  const tok = v('cfg_token');
+  if (tok) body.xui_token = tok;
+  const r = await fetch(API + '/api/settings', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (d.error) { ge('cfgError').textContent=d.error; ge('cfgError').classList.remove('hidden'); return; }
+  closeSettings();
+  toast('设置已保存');
+  loadInbounds();
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function ge(id) { return document.getElementById(id); }
+function v(id) { return ge(id).value.trim(); }
+function show(id) { ge(id).classList.remove('hidden'); }
+function hide(id) { ge(id).classList.add('hidden'); }
+function hideEl(id) { ge(id).classList.add('hidden'); }
+function setBody(html) { ge('tableBody').innerHTML = html; }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function toggleAll(el) {
+  document.querySelectorAll('.row-chk').forEach(c => c.checked = el.checked);
+}
+
+function toast(msg) {
+  const el = ge('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+checkSetup();
+</script>
+</body>
+</html>
