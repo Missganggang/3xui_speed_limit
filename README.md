@@ -30,6 +30,20 @@ PORT=8899 bash <(curl -Ls https://raw.githubusercontent.com/Missganggang/3xui_sp
 > 脚本会自动：安装依赖 → 从 GitHub 下载项目 → 建虚拟环境 → 注册 systemd 开机自启。
 > 重复执行即可升级到最新版本，已有的 `config.json`（含限速规则和 Token）会保留。
 
+## 卸载
+
+在服务器上以 root 执行，会**先取消所有 tc 限速规则**，再停止服务、删除文件：
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/Missganggang/3xui_speed_limit/main/uninstall.sh)
+```
+
+如需保留配置（Token + 限速规则）备份到 `/tmp/3xui-speed-config.json.bak`：
+
+```bash
+KEEP_CONFIG=1 bash <(curl -Ls https://raw.githubusercontent.com/Missganggang/3xui_speed_limit/main/uninstall.sh)
+```
+
 ## 首次配置
 
 打开面板后填写：
